@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Lost & Found - Premium Portal</title>
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!--
+    Accessible, fixed header navigation:
+    - Uses semantic <header> + <nav> + list of links
+    - Includes a “Skip to content” link for keyboard users
+    - The header is fixed; page layout uses padding-top to prevent overlap
+  -->
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-js="site-header" role="banner">
+    <div class="nav-shell">
+      <a class="brand" href="#top" aria-label="Lost & Found Home">
+        <span class="brand-mark" aria-hidden="true">LF</span>
+        <span class="brand-text">Lost &amp; Found</span>
+      </a>
+
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-expanded="false" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      <nav class="site-nav" id="siteNav" aria-label="Primary">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="#search">Search Items</a></li>
+          <li><a class="nav-link" href="#report-lost">Report Lost</a></li>
+          <li><a class="nav-link" href="#report-found">Report Found</a></li>
+          <li><a class="nav-link" href="#how-it-works">How it works</a></li>
+          <li><a class="nav-link nav-link--cta" href="#help">Get help</a></li>
+          <li><a class="nav-link" href="#" id="authNavBtn">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Auth Modal -->
+  <dialog id="authModal" class="modal">
+    <div class="modal-content">
+      <h2 id="authTitle">Login</h2>
+      <form class="form" id="authForm">
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input name="password" type="password" required />
+        </label>
+        <button class="button" type="submit" style="width: 100%; margin-top: 10px;" id="authSubmitBtn">Log In</button>
+        <div class="form-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
+      </form>
+      <p style="margin-top: 16px; font-size: 0.9em; text-align: center;">
+        <a href="#" id="authToggleLink" style="color: var(--accent);">Need an account? Register here.</a>
+      </p>
+      <button class="modal-close" id="closeAuthBtn" aria-label="Close modal">&times;</button>
+    </div>
+  </dialog>
+
+  <main id="main" class="page" tabindex="-1">
+    <section class="hero initial-load" id="top">
+      <div class="content">
+        <h1>Lost &amp; Found reimagined.<br><span class="gradient-text">Secure. Fast. Global.</span></h1>
+        <p>
+          A state-of-the-art, hyper-secure lost &amp; found experience.
+          We use zero-trust infrastructure to instantly match lost items with their rightful owners.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="#search">Search items</a>
+          <a class="button button--secondary" href="#report-lost">Report a lost item</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="search" class="section">
+      <div class="content reveal">
+        <h2 class="scramble reveal" data-value="Search items">Search items</h2>
+        <p>
+          Example UI content to demonstrate the fixed navigation. In a real portal this would
+          filter by category, location, date, and keywords.
+        </p>
+
+        <div style="margin-bottom: 20px;">
+          <input type="text" id="searchInput" placeholder="Search by keyword, location, etc." style="max-width: 400px;" />
+        </div>
+        <div class="grid" id="itemsContainer">
+          <!-- Dynamic items will be populated here -->
+          <article class="card">
+            <h3>Loading...</h3>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="report-lost" class="section section--alt">
+      <div class="content reveal">
+        <h2 class="scramble reveal" data-value="Report a lost item">Report a lost item</h2>
+        <p>
+          The goal is clarity and trust: users should quickly provide essential details.
+          This content adds vertical depth to validate scroll behavior at different speeds.
+        </p>
+        <div class="long-text auth-protected">
+          <div class="auth-message" style="display: none; background: rgba(255,0,0,0.1); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,0,0,0.3); margin-bottom: 20px;">
+            <h3>Authentication Required</h3>
+            <p>You must be logged in to report a lost item to prevent fake claims. <a href="#" class="open-auth" style="color: var(--accent);">Click here to log in or register.</a></p>
+          </div>
+          <form class="form protected-form" id="reportLostForm">
+            <input type="hidden" name="type" value="lost" />
+            <label>
+              <span>Item Title</span>
+              <input name="title" required placeholder="e.g. Leather Wallet" />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea name="description" rows="3" required placeholder="Include distinguishing marks..."></textarea>
+            </label>
+            <label>
+              <span>Last Known Location</span>
+              <input name="location" required placeholder="e.g. Campus Library" />
+            </label>
+            <label>
+              <span>Date Lost</span>
+              <input name="date" type="date" required />
+            </label>
+            <button class="button" type="submit">Report Lost Item</button>
+            <div class="form-message" style="display: none; color: var(--accent); margin-top: 10px; font-weight: bold;"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="report-found" class="section">
+      <div class="content reveal">
+        <h2 class="scramble reveal" data-value="Report a found item">Report a found item</h2>
+        <p>
+          Found something? Report it so the owner can locate it. Keep descriptions accurate and safe.
+        </p>
+        <div class="long-text auth-protected">
+          <div class="auth-message" style="display: none; background: rgba(255,0,0,0.1); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,0,0,0.3); margin-bottom: 20px;">
+            <h3>Authentication Required</h3>
+            <p>You must be logged in to report a found item to prevent fake claims. <a href="#" class="open-auth" style="color: var(--accent);">Click here to log in or register.</a></p>
+          </div>
+          <form class="form protected-form" id="reportFoundForm">
+            <input type="hidden" name="type" value="found" />
+            <label>
+              <span>Item Title</span>
+              <input name="title" required placeholder="e.g. Blue Backpack" />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea name="description" rows="3" required placeholder="Mask sensitive details..."></textarea>
+            </label>
+            <label>
+              <span>Location Found</span>
+              <input name="location" required placeholder="e.g. Main Terminal" />
+            </label>
+            <label>
+              <span>Date Found</span>
+              <input name="date" type="date" required />
+            </label>
+            <button class="button" type="submit">Report Found Item</button>
+            <div class="form-message" style="display: none; color: var(--accent); margin-top: 10px; font-weight: bold;"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section section--alt">
+      <div class="content reveal">
+        <h2 class="scramble reveal" data-value="How it works">How it works</h2>
+        <details class="faq">
+          <summary>1) Search items</summary>
+          <p>Search found items by category, location, and date. Use short, specific keywords.</p>
+        </details>
+        <details class="faq">
+          <summary>2) Report lost or found</summary>
+          <p>Share essential details. Keep sensitive information private until verification.</p>
+        </details>
+        <details class="faq">
+          <summary>3) Verify and reunite</summary>
+          <p>Confirm unique characteristics before handoff. Arrange pickup at a safe location.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="help" class="section">
+      <div class="content auth-protected reveal">
+        <h2 class="scramble reveal" data-value="Get help">Get help</h2>
+        <p>Submit inquiries securely to the platform staff.</p>
+        <div class="auth-message" style="display: none; background: rgba(255,0,0,0.1); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,0,0,0.3); margin-bottom: 20px;">
+          <h3>Authentication Required</h3>
+          <p>You must be logged in to contact support. <a href="#" class="open-auth" style="color: var(--accent);">Click here to log in or register.</a></p>
+        </div>
+        <form class="form protected-form" id="helpForm">
+          <label>
+            <span>Your name</span>
+            <input name="name" required autocomplete="name" />
+          </label>
+          <label>
+            <span>Email</span>
+            <input name="email" required type="email" autocomplete="email" />
+          </label>
+          <label>
+            <span>Topic</span>
+            <input name="topic" required placeholder="e.g., Matching, pickup location, privacy" />
+          </label>
+          <label>
+            <span>Message</span>
+            <textarea name="message" required rows="4" placeholder="Share item details without sensitive info."></textarea>
+          </label>
+          <button class="button" type="submit">Send message</button>
+          <div class="form-message" style="display: none; color: var(--accent); margin-top: 10px; font-weight: bold;"></div>
+        </form>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="content">
+        <p>© <span id="year"></span> Lost &amp; Found Portal. Navigation component demo.</p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
