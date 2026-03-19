@@ -186,6 +186,11 @@
               <span>Date Lost</span>
               <input name="date" type="date" required />
             </label>
+            <label>
+              <span>Photos (Optional, max 3)</span>
+              <input class="photo-input" type="file" id="lostPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple />
+            </label>
+            <div id="lostPhotoPreview" class="photo-preview-grid"></div>
             <button class="button" type="submit">Report Lost Item</button>
             <div class="form-message" style="display: none; color: var(--accent); margin-top: 10px; font-weight: bold;"></div>
           </form>
@@ -222,6 +227,11 @@
               <span>Date Found</span>
               <input name="date" type="date" required />
             </label>
+            <label>
+              <span>Photos (Mandatory, 1-3 photos)</span>
+              <input class="photo-input" type="file" id="foundPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple />
+            </label>
+            <div id="foundPhotoPreview" class="photo-preview-grid"></div>
             <button class="button" type="submit">Report Found Item</button>
             <div class="form-message" style="display: none; color: var(--accent); margin-top: 10px; font-weight: bold;"></div>
           </form>

@@ -284,6 +284,56 @@
     }, timeout);
   }
 
+  // --- Photo Upload Logic ---
+  let lostSelectedFiles = [];
+  let foundSelectedFiles = [];
+
+  function handleFileInput(e, filesArray, previewContainerId, maxFiles = 3) {
+    const input = e.target;
+    for (let i = 0; i < input.files.length; i++) {
+      if (filesArray.length >= maxFiles) {
+        alert(`You can only upload up to ${maxFiles} photos.`);
+        break;
+      }
+      const file = input.files[i];
+      
+      const fileId = Math.random().toString(36).substring(7);
+      const fileObj = { file, id: fileId };
+      filesArray.push(fileObj);
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const previewContainer = document.getElementById(previewContainerId);
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.dataset.id = fileId;
+        div.innerHTML = `
+          <img src="${evt.target.result}" alt="Preview" />
+          <button type="button" class="remove-btn" title="Remove photo">&times;</button>
+        `;
+        div.querySelector('.remove-btn').addEventListener('click', () => {
+          const index = filesArray.findIndex(f => f.id === fileId);
+          if (index > -1) filesArray.splice(index, 1);
+          div.remove();
+          if (filesArray.length === 0) input.value = '';
+        });
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+    input.value = '';
+  }
+
+  const lostPhotoInput = document.getElementById('lostPhotoInput');
+  if (lostPhotoInput) {
+    lostPhotoInput.addEventListener('change', (e) => handleFileInput(e, lostSelectedFiles, 'lostPhotoPreview', 3));
+  }
+
+  const foundPhotoInput = document.getElementById('foundPhotoInput');
+  if (foundPhotoInput) {
+    foundPhotoInput.addEventListener('change', (e) => handleFileInput(e, foundSelectedFiles, 'foundPhotoPreview', 3));
+  }
+
   // Handle generalized form submissions
   async function submitForm(e, table) {
     e.preventDefault();
@@ -307,6 +357,37 @@
       }
       data.user_id = session.user.id; // Attach user_id
 
+      let photoUrls = [];
+      if (table === 'items') {
+        if (form.id === 'reportFoundForm' && foundSelectedFiles.length === 0) {
+          showMessage(form, 'You must upload at least 1 photo for a found item.', true);
+          btn.textContent = originalText;
+          btn.disabled = false;
+          return;
+        }
+
+        const filesToUpload = form.id === 'reportLostForm' ? lostSelectedFiles : (form.id === 'reportFoundForm' ? foundSelectedFiles : []);
+        if (filesToUpload.length > 0) {
+          btn.textContent = 'Uploading Photos...';
+          for (const fileObj of filesToUpload) {
+            const file = fileObj.file;
+            const ext = file.name.split('.').pop() || 'jpg';
+            const fileName = `${session.user.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage.from('item-photos').upload(fileName, file);
+            
+            if (uploadError) {
+              console.error('Photo upload error:', uploadError);
+            } else if (uploadData) {
+              const { data: publicUrlData } = supabase.storage.from('item-photos').getPublicUrl(uploadData.path);
+              photoUrls.push(publicUrlData.publicUrl);
+            }
+          }
+        }
+        if (photoUrls.length > 0) {
+          data.photos = photoUrls;
+        }
+      }
+
       const { error } = await supabase.from(table).insert([data]);
 
       btn.textContent = originalText;
@@ -315,6 +396,18 @@
       if (!error) {
         showMessage(form, 'Successfully submitted!');
         form.reset();
+        
+        // Reset photo state
+        if (form.id === 'reportLostForm') {
+          lostSelectedFiles = [];
+          const preview = document.getElementById('lostPhotoPreview');
+          if(preview) preview.innerHTML = '';
+        } else if (form.id === 'reportFoundForm') {
+          foundSelectedFiles = [];
+          const preview = document.getElementById('foundPhotoPreview');
+          if(preview) preview.innerHTML = '';
+        }
+
         if (table === 'items') {
           fetchItems(); // Refresh the items list
         }
@@ -374,10 +467,20 @@
         const typeBadge = item.type === 'lost' ? '<span style="color: #ff4e4e; font-weight: bold;">[LOST]</span>' : '<span style="color: var(--accent); font-weight: bold;">[FOUND]</span>';
         const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
 
+        let photosHtml = '';
+        if (item.photos && item.photos.length > 0) {
+          photosHtml = '<div class="card-photos">';
+          item.photos.forEach(url => {
+            photosHtml += `<img src="${url}" alt="Item Photo" loading="lazy" />`;
+          });
+          photosHtml += '</div>';
+        }
+
         card.innerHTML = `
           <h3>${typeBadge} ${item.title}</h3>
           <p><strong>Location:</strong> ${item.location || 'N/A'} <br/> <strong>Date:</strong> ${dateStr}</p>
           <p style="margin-top: 10px; font-size: 0.95em; color: var(--muted);">${item.description || ''}</p>
+          ${photosHtml}
         `;
         
         // Attach 3D tilt physics dynamically
