@@ -408,11 +408,50 @@
   const authNavBtn = document.getElementById('authNavBtn');
   const authModal = document.getElementById('authModal');
   const closeAuthBtn = document.getElementById('closeAuthBtn');
-  const authForm = document.getElementById('authForm');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const otpForm = document.getElementById('otpForm');
+  const otpEmail = document.getElementById('otpEmail');
+  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
   const authToggleLink = document.getElementById('authToggleLink');
   const authTitle = document.getElementById('authTitle');
   
-  let isLoginMode = true;
+  let currentAuthMode = 'login'; // 'login', 'register', 'forgot', 'otp'
+
+  function switchAuthMode(mode) {
+    currentAuthMode = mode;
+    [loginForm, registerForm, forgotPasswordForm, otpForm].forEach(f => {
+      if (f) {
+        f.style.display = 'none';
+        f.reset();
+        const msg = f.querySelector('.form-message');
+        if (msg) msg.style.display = 'none';
+      }
+    });
+
+    if (mode === 'login') {
+      authTitle.textContent = 'Login';
+      authToggleLink.style.display = 'inline';
+      authToggleLink.textContent = 'Need an account? Register here.';
+      if(loginForm) loginForm.style.display = 'flex';
+    } else if (mode === 'register') {
+      authTitle.textContent = 'Register';
+      authToggleLink.style.display = 'inline';
+      authToggleLink.textContent = 'Already have an account? Login here.';
+      if(registerForm) registerForm.style.display = 'flex';
+    } else if (mode === 'forgot') {
+      authTitle.textContent = 'Reset Password';
+      authToggleLink.style.display = 'inline';
+      authToggleLink.textContent = 'Back to Login';
+      if(forgotPasswordForm) forgotPasswordForm.style.display = 'flex';
+    } else if (mode === 'otp') {
+      authTitle.textContent = 'Verify OTP';
+      authToggleLink.style.display = 'inline';
+      authToggleLink.textContent = 'Cancel Request (Back to Login)';
+      if(otpForm) otpForm.style.display = 'flex';
+    }
+  }
 
   async function updateAuthUI() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -433,11 +472,21 @@
   });
 
   // Check for Email Verification Redirect from Supabase
-  window.addEventListener('load', () => {
+  window.addEventListener('load', async () => {
     if (window.location.hash.includes('type=signup')) {
-      alert("Your email has been successfully verified! You are now logged in and can access the platform.");
-      // Clean up the URL to remove the ugly hash tokens
+      alert("Your email has been successfully verified! Please log in manually to access your account.");
       window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      
+      // Supabase natively auto-logs in the user upon confirmation.
+      // We explicitly sign them out to force the manual login step requested.
+      await supabase.auth.signOut();
+      updateAuthUI();
+
+      // Open Login Modal automatically
+      document.body.classList.add('modal-open');
+      authModal.showModal();
+
+      switchAuthMode('login');
     }
   });
 
@@ -450,6 +499,7 @@
         await supabase.auth.signOut();
         updateAuthUI();
       } else {
+        document.body.classList.add('modal-open');
         authModal.showModal();
       }
     });
@@ -458,9 +508,16 @@
   document.querySelectorAll('.open-auth').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      document.body.classList.add('modal-open');
       authModal.showModal();
     });
   });
+
+  if (authModal) {
+    authModal.addEventListener('close', () => {
+      document.body.classList.remove('modal-open');
+    });
+  }
 
   if (closeAuthBtn) {
     closeAuthBtn.addEventListener('click', () => authModal.close());
@@ -470,70 +527,238 @@
   if (authToggleLink) {
     authToggleLink.addEventListener('click', (e) => {
       e.preventDefault();
-      isLoginMode = !isLoginMode;
-      authTitle.textContent = isLoginMode ? 'Login' : 'Register';
-      authToggleLink.textContent = isLoginMode ? 'Need an account? Register here.' : 'Already have an account? Login here.';
-      authForm.querySelector('button[type="submit"]').textContent = isLoginMode ? 'Log In' : 'Register';
-      authForm.reset();
-      authForm.querySelector('.form-message').style.display = 'none';
+      if (currentAuthMode === 'login') {
+        switchAuthMode('register');
+      } else {
+        switchAuthMode('login'); // Any other mode -> login
+      }
     });
   }
 
-  // Handle Auth Form Submission
-  if (authForm) {
-    authForm.addEventListener('submit', async (e) => {
+  // Forgot Password Link Click
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', (e) => {
       e.preventDefault();
-      const formData = new FormData(authForm);
+      switchAuthMode('forgot');
+    });
+  }
+
+  // Handle Login Submissions
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(loginForm);
       const email = formData.get('email');
       const password = formData.get('password');
       
       try {
-        const btn = authForm.querySelector('button[type="submit"]');
+        const btn = loginForm.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
         btn.textContent = 'Please wait...';
         btn.disabled = true;
 
-        let result;
-        if (isLoginMode) {
-          result = await supabase.auth.signInWithPassword({ email, password });
-        } else {
-          result = await supabase.auth.signUp({ email, password });
-        }
+        const result = await supabase.auth.signInWithPassword({ email, password });
 
         btn.textContent = originalText;
         btn.disabled = false;
 
         if (result.error) {
-          showMessage(authForm, result.error.message, true);
+          showMessage(loginForm, result.error.message, true);
         } else {
-          if (isLoginMode) {
-            authModal.close();
-            updateAuthUI();
-            authForm.reset();
-          } else {
-            if (!result.data.session) {
-              // Email confirmation required
-              showMessage(authForm, 'Registration successful! Please check your email to confirm your account.', false, 8000);
-              
-              // Switch to Login after a short delay so they have time to read
-              setTimeout(() => {
-                isLoginMode = true;
-                authTitle.textContent = 'Login';
-                authToggleLink.textContent = 'Need an account? Register here.';
-                btn.textContent = 'Log In';
-                authForm.reset();
-              }, 4000);
-            } else {
-              // Automatically logged in (Confirm Email is disabled)
-              authModal.close();
-              updateAuthUI();
-              authForm.reset();
-            }
-          }
+          authModal.close();
+          updateAuthUI();
+          loginForm.reset();
         }
       } catch (error) {
-        console.error('Auth error:', error);
-        showMessage(authForm, 'Network error occurred.', true);
+        console.error('Login error:', error);
+        showMessage(loginForm, 'Network error occurred.', true);
+      }
+    });
+  }
+
+  // Handle Register Submissions
+  if (registerForm) {
+    // --- REAL-TIME FRONTEND DUPLICATE EMAIL CHECK (ON BLUR) ---
+    const registerEmailInput = registerForm.querySelector('input[name="email"]');
+    if (registerEmailInput) {
+      registerEmailInput.addEventListener('blur', async (e) => {
+        const email = e.target.value.trim();
+        if (!email) return;
+        
+        try {
+          const { data: emailExists } = await supabase.rpc('check_email_exists', { lookup_email: email });
+          if (emailExists === true) {
+            showMessage(registerForm, 'This email address is already associated with an existing account. Please use a different email or log in instead.', true, 6000);
+            e.target.style.borderColor = '#ff4e4e';
+            e.target.style.boxShadow = '0 0 0 4px rgba(255, 78, 78, 0.1)';
+          } else {
+            e.target.style.borderColor = ''; // reset to default css rule
+            e.target.style.boxShadow = '';
+            const msgDiv = registerForm.querySelector('.form-message');
+            if (msgDiv && msgDiv.textContent.includes('already associated')) {
+              msgDiv.style.display = 'none';
+              msgDiv.textContent = '';
+            }
+          }
+        } catch (err) {
+          console.error('Real-time validation error', err);
+        }
+      });
+    }
+    // ----------------------------------------------------------
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(registerForm);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      const fullName = formData.get('full_name');
+      const mobileNumber = formData.get('mobile_number');
+      
+      try {
+        const btn = registerForm.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Please wait...';
+        btn.disabled = true;
+
+        // --- DUPLICATE EMAIL CHECK (Server-side validation via RPC) ---
+        const { data: emailExists, error: rpcError } = await supabase.rpc('check_email_exists', { lookup_email: email });
+        
+        if (emailExists === true) {
+          showMessage(registerForm, 'This email address is already associated with an existing account. Please use a different email or log in instead.', true, 8000);
+          btn.textContent = originalText;
+          btn.disabled = false;
+          return; // Stop execution immediately, reject registration
+        }
+        // --------------------------------------------------------------
+
+        const result = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              mobile_number: mobileNumber
+            }
+          }
+        });
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (result.error) {
+          if (result.error.message && result.error.message.toLowerCase().includes('error sending confirmation email')) {
+            showMessage(registerForm, 'Setup Error: Supabase free-tier 3 email/hr limit reached. Please configure a Custom SMTP (like Resend) in your Supabase Dashboard to test unlimited emails.', true, 12000);
+          } else {
+            showMessage(registerForm, result.error.message, true);
+          }
+        } else {
+          // Whether session exists or not, enforcement demands we enter verified state via email
+          showMessage(registerForm, 'A verification email has been sent to your email address. Please verify your email to activate your account.', false, 10000);
+          
+          // Switch back to Login view after delay
+          setTimeout(() => {
+            switchAuthMode('login');
+          }, 5000);
+        }
+      } catch (error) {
+        console.error('Register error:', error);
+        showMessage(registerForm, 'Network error occurred.', true);
+      }
+    });
+  }
+
+  // Handle Forgot Password (Send OTP)
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(forgotPasswordForm);
+      const email = formData.get('email');
+      
+      try {
+        const btn = forgotPasswordForm.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Sending...';
+        btn.disabled = true;
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (error) {
+          showMessage(forgotPasswordForm, error.message, true, 8000);
+        } else {
+          // Switch to OTP Form
+          switchAuthMode('otp');
+          if(otpEmail) otpEmail.value = email; // Keep track of email for verifyOtp
+        }
+      } catch (error) {
+        console.error('Request OTP error:', error);
+        showMessage(forgotPasswordForm, 'Network error occurred.', true);
+      }
+    });
+  }
+
+  // Handle Verify & Reset (OTP Form)
+  if (otpForm) {
+    otpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(otpForm);
+      const email = formData.get('email');
+      const token = formData.get('otp');
+      const password = formData.get('password');
+
+      try {
+        const btn = otpForm.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Verifying...';
+        btn.disabled = true;
+
+        // Verify the 6-digit OTP
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: 'recovery'
+        });
+
+        if (verifyError) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+          showMessage(otpForm, verifyError.message, true, 8000);
+          return;
+        }
+
+        // OTP verified successfully (user gets a session)
+        // Now update their password
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: password
+        });
+
+        if (updateError) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+          showMessage(otpForm, updateError.message, true, 8000);
+          return;
+        }
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        showMessage(otpForm, 'Password has been set successfully! Please log in.', false, 4000);
+        
+        // Log them out and wait a moment before sending them to Login screen
+        await supabase.auth.signOut();
+        setTimeout(() => {
+          switchAuthMode('login');
+        }, 3000);
+
+      } catch (error) {
+        console.error('OTP Verification or Password Update error:', error);
+        showMessage(otpForm, 'Network error occurred.', true);
+        const btn = otpForm.querySelector('button[type="submit"]');
+        btn.textContent = 'Verify & Reset';
+        btn.disabled = false;
       }
     });
   }

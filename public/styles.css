@@ -107,7 +107,16 @@ body.menu-open { overflow: hidden; }
   mix-blend-mode: screen;
 }
 @media (min-width: 861px) {
-  body * { cursor: none !important; }
+  body:not(.modal-open) * { cursor: none !important; }
+}
+
+body.modal-open .custom-cursor,
+body.modal-open #cursorGlow {
+  display: none !important;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 /* Particle Network */

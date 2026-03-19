@@ -56,16 +56,62 @@
   <dialog id="authModal" class="modal">
     <div class="modal-content">
       <h2 id="authTitle">Login</h2>
-      <form class="form" id="authForm">
+      <form class="form" id="loginForm">
         <label>
-          <span>Email</span>
+          <span>Email Address</span>
+          <input name="email" type="email" required />
+        </label>
+        <label>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span>Password</span>
+            <a href="#" id="forgotPasswordLink" style="font-size: 0.85em; color: var(--accent);">Forgot Password?</a>
+          </div>
+          <input name="password" type="password" required />
+        </label>
+        <button class="button" type="submit" style="width: 100%; margin-top: 10px;">Log In</button>
+        <div class="form-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
+      </form>
+      <form class="form" id="registerForm" style="display: none;">
+        <label>
+          <span>Full Name</span>
+          <input name="full_name" type="text" required />
+        </label>
+        <label>
+          <span>Mobile Number</span>
+          <input name="mobile_number" type="tel" required />
+        </label>
+        <label>
+          <span>Email Address</span>
           <input name="email" type="email" required />
         </label>
         <label>
           <span>Password</span>
           <input name="password" type="password" required />
         </label>
-        <button class="button" type="submit" style="width: 100%; margin-top: 10px;" id="authSubmitBtn">Log In</button>
+        <button class="button" type="submit" style="width: 100%; margin-top: 10px;">Register</button>
+        <div class="form-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
+      </form>
+      <form class="form" id="forgotPasswordForm" style="display: none;">
+        <p style="margin-bottom: 15px; font-size: 0.9em;">Enter your email address and we'll send you an OTP to reset your password.</p>
+        <label>
+          <span>Email Address</span>
+          <input name="email" type="email" required />
+        </label>
+        <button class="button" type="submit" style="width: 100%; margin-top: 10px;">Send OTP</button>
+        <div class="form-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
+      </form>
+      <form class="form" id="otpForm" style="display: none;">
+        <p id="otpMessage" style="margin-bottom: 15px; font-size: 0.9em; color: var(--accent);">An OTP has been sent to your email.</p>
+        <input type="hidden" name="email" id="otpEmail" />
+        <label>
+          <span>6-Digit OTP</span>
+          <input name="otp" type="text" required pattern="[0-9]{1,6}" maxlength="6" placeholder="123456" style="letter-spacing: 0.2em; font-weight: bold; text-align: center;" />
+        </label>
+        <label>
+          <span>New Password</span>
+          <input name="password" type="password" required />
+        </label>
+        <button class="button" type="submit" style="width: 100%; margin-top: 10px;">Verify & Reset</button>
         <div class="form-message" style="display: none; margin-top: 10px; font-weight: bold;"></div>
       </form>
       <p style="margin-top: 16px; font-size: 0.9em; text-align: center;">
